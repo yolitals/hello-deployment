@@ -1,0 +1,71 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-deployment
+  namespace: development
+  labels:
+    app: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-app
+  template:
+    metadata:
+      namespace: development
+      labels:
+        app: todo-app
+    spec:
+      containers:
+      - name: mongo
+        image: mongo
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGODB_INITDB_ROOT_USERNAME
+          value: username
+        - name: MONGODB_INITDB_ROOT_PASSWORD
+          value: password
+      - name: todo-api 
+        image: yolix/todo-api:v1
+        ports:
+        - containerPort: 3001
+      - name: todo-web-app
+        image: yolix/todo-web-app:v1
+        ports:
+        - containerPort: 3000
+        env:
+        - name: REACT_APP_API_URL
+          # Este valor debe cambiarse por el endpoint del backend
+          value: http://34.173.158.178:3001/api 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: development
+spec:
+  selector:
+    app: todo-app
+  type: ClusterIP
+  ports:
+  - port: 27017
+    targetPort: 27017     
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app
+  namespace: development
+spec:
+  type: LoadBalancer
+  ports:
+  - name: backend
+    port: 3001
+    targetPort: 3001
+  - name: frontend
+    port: 80
+    targetPort: 3000
+  selector:
+    app: todo-app
